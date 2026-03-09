@@ -1,22 +1,50 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http"
+
 	"expense-manager/internal/model"
 	"expense-manager/internal/service"
-	"fmt"
 )
+
+var manager = service.ExpenseService{}
+
+func getExpenses(w http.ResponseWriter, r *http.Request) {
+	expenses := manager.GetAll()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(expenses)
+}
+
+func createExpense(w http.ResponseWriter, r *http.Request) {
+	var expense model.Expense
+
+	err := json.NewDecoder(r.Body).Decode(&expense)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	manager.AddExpense(expense)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(expense)
+}
 
 func main() {
 
-	manager := service.ExpenseService{}
+	http.HandleFunc("/expenses", func(w http.ResponseWriter, r *http.Request) {
 
-	manager.AddExpense(model.Expense{1, "Lunch", 50, "Food"})
-	manager.AddExpense(model.Expense{2, "Taxi", 30, "Transport"})
-	manager.AddExpense(model.Expense{3, "Coffee", 20, "Drink"})
+		if r.Method == http.MethodGet {
+			getExpenses(w, r)
+		}
 
-	fmt.Println("Total:", manager.TotalExpense())
+		if r.Method == http.MethodPost {
+			createExpense(w, r)
+		}
 
-	manager.DeleteExpense(2)
+	})
 
-	fmt.Println("Total after delete:", manager.TotalExpense())
+	http.ListenAndServe(":8080", nil)
+
 }
