@@ -31,19 +31,46 @@ func createExpense(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(expense)
 }
 
+func updateExpense(w http.ResponseWriter, r *http.Request) {
+
+	var e model.Expense
+	err := json.NewDecoder(r.Body).Decode(&e)
+
+	if err != nil {
+		http.Error(w, "Invalid data", http.StatusBadRequest)
+		return
+	}
+
+	ok := manager.UpdateExpense(e.ID, e)
+
+	if !ok {
+		http.Error(w, "Expense not found", http.StatusNotFound)
+		return
+	}
+
+	w.Write([]byte("Expense updated"))
+}
+
 func main() {
 
 	http.HandleFunc("/expenses", func(w http.ResponseWriter, r *http.Request) {
 
-		if r.Method == http.MethodGet {
-			getExpenses(w, r)
-		}
+		switch r.Method {
 
-		if r.Method == http.MethodPost {
+		case http.MethodGet:
+			getExpenses(w, r)
+
+		case http.MethodPost:
 			createExpense(w, r)
+
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+
 		}
 
 	})
+
+	http.HandleFunc("/expenses/update", updateExpense)
 
 	http.ListenAndServe(":8080", nil)
 

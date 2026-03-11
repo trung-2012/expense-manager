@@ -31,3 +31,15 @@ func (s *ExpenseService) TotalExpense() float64 {
 	}
 	return total
 }
+
+func (s *ExpenseService) UpdateExpense(id int, updated model.Expense) bool {
+	for i, e := range s.expenses {
+		if e.ID == id {
+			s.expenses[i].Title = updated.Title
+			s.expenses[i].Amount = updated.Amount
+			s.expenses[i].Category = updated.Category
+			return true
+		}
+	}
+	return false
+}
