@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"expense-manager/internal/auth"
 	"expense-manager/internal/model"
 	"expense-manager/internal/service"
 
@@ -136,6 +137,19 @@ func deleteExpense(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func login(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GenerateToken("trung")
+
+	if err != nil {
+		http.Error(w, "cannot generate token", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"token": token,
+	})
+}
+
 func main() {
 
 	r := mux.NewRouter()
@@ -147,6 +161,8 @@ func main() {
 	r.HandleFunc("/expenses/{id}", updateExpense).Methods("PUT")
 	r.HandleFunc("/expenses/{id}", getExpenseByID).Methods("GET")
 	r.HandleFunc("/expenses/{id}", deleteExpense).Methods("DELETE")
+	r.HandleFunc("/expenses", AuthMiddleware(getExpenses)).Methods("GET")
+	r.HandleFunc("/login", login).Methods("POST")
 
 	http.ListenAndServe(":8080", r)
 

@@ -1,9 +1,12 @@
 package main
 
 import (
+	"expense-manager/internal/auth"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func LoggingMiddleware(next http.Handler) http.Handler {
@@ -13,4 +16,27 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		tokenString := r.Header.Get("Authorization")
+
+		if tokenString == "" {
+			http.Error(w, "missing token", http.StatusUnauthorized)
+			return
+		}
+
+		_, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return auth.SecretKey, nil
+		})
+
+		if err != nil {
+			http.Error(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		next(w, r)
+	}
 }
