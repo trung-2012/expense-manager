@@ -4,6 +4,7 @@ import (
 	"expense-manager/internal/auth"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,18 +25,24 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		tokenString := r.Header.Get("Authorization")
 
 		if tokenString == "" {
-			http.Error(w, "missing token", http.StatusUnauthorized)
+			http.Error(w, "Missing token", http.StatusUnauthorized)
 			return
 		}
 
-		_, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return auth.SecretKey, nil
+		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+
+		claims := &jwt.MapClaims{}
+
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+			return auth.JwtKey, nil
 		})
 
-		if err != nil {
-			http.Error(w, "invalid token", http.StatusUnauthorized)
+		if err != nil || !token.Valid {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}
+
+		fmt.Println("User:", (*claims)["username"])
 
 		next(w, r)
 	}

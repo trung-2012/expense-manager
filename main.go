@@ -137,6 +137,10 @@ func deleteExpense(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func profile(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Protected profile success"))
+}
+
 func login(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GenerateToken("trung")
 
@@ -156,13 +160,13 @@ func main() {
 
 	r.Use(LoggingMiddleware)
 
-	r.HandleFunc("/expenses", getExpenses).Methods("GET")
 	r.HandleFunc("/expenses", createExpense).Methods("POST")
 	r.HandleFunc("/expenses/{id}", updateExpense).Methods("PUT")
 	r.HandleFunc("/expenses/{id}", getExpenseByID).Methods("GET")
 	r.HandleFunc("/expenses/{id}", deleteExpense).Methods("DELETE")
 	r.HandleFunc("/expenses", AuthMiddleware(getExpenses)).Methods("GET")
 	r.HandleFunc("/login", login).Methods("POST")
+	r.HandleFunc("/profile", AuthMiddleware(profile)).Methods("GET")
 
 	http.ListenAndServe(":8080", r)
 
