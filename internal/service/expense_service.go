@@ -61,19 +61,28 @@ func (s *ExpenseService) GetByID(id int) (model.Expense, bool) {
 	return model.Expense{}, false
 }
 
-func (s *ExpenseService) FilterExpenses(category string, min int) []model.Expense {
+func (s *ExpenseService) FilterExpensesByUser(username, category string, min int) []model.Expense {
 	var result []model.Expense
 
-	for _, e := range s.expenses {
-		if category != "" && e.Category != category {
-			continue
+	for _, expense := range s.expenses {
+		if expense.UserID == username {
+			if (category == "" || expense.Category == category) &&
+				(min == 0 || int(expense.Amount) >= min) {
+				result = append(result, expense)
+			}
 		}
+	}
 
-		if min > 0 && e.Amount < min {
-			continue
+	return result
+}
+
+func (s *ExpenseService) GetByUser(username string) []model.Expense {
+	var result []model.Expense
+
+	for _, expense := range s.expenses {
+		if expense.UserID == username {
+			result = append(result, expense)
 		}
-
-		result = append(result, e)
 	}
 
 	return result

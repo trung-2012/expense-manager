@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"expense-manager/internal/auth"
 	"fmt"
 	"net/http"
@@ -44,6 +45,7 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		fmt.Println("User:", (*claims)["username"])
 
-		next(w, r)
+		ctx := context.WithValue(r.Context(), "user", *claims)
+		next(w, r.WithContext(ctx))
 	}
 }

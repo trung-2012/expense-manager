@@ -9,6 +9,7 @@ import (
 	"expense-manager/internal/model"
 	"expense-manager/internal/service"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 )
 
@@ -24,7 +25,10 @@ func getExpenses(w http.ResponseWriter, r *http.Request) {
 		min = value
 	}
 
-	expenses := manager.FilterExpenses(category, min)
+	claims := r.Context().Value("user").(jwt.MapClaims)
+	username := claims["username"].(string)
+
+	expenses := manager.FilterExpensesByUser(username, category, min)
 
 	response := model.APIResponse{
 		Message: "success",
@@ -43,6 +47,17 @@ func createExpense(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
+
+	user := r.Context().Value("user")
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	claims := user.(jwt.MapClaims)
+	username := claims["username"].(string)
+
+	expense.UserID = username
 
 	if expense.Title == "" {
 		http.Error(w, "Title is required", http.StatusBadRequest)
@@ -160,7 +175,7 @@ func main() {
 
 	r.Use(LoggingMiddleware)
 
-	r.HandleFunc("/expenses", createExpense).Methods("POST")
+	r.HandleFunc("/expenses", AuthMiddleware(createExpense)).Methods("POST")
 	r.HandleFunc("/expenses/{id}", updateExpense).Methods("PUT")
 	r.HandleFunc("/expenses/{id}", getExpenseByID).Methods("GET")
 	r.HandleFunc("/expenses/{id}", deleteExpense).Methods("DELETE")
