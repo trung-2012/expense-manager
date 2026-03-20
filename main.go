@@ -26,9 +26,9 @@ func getExpenses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	claims := r.Context().Value("user").(jwt.MapClaims)
-	username := claims["username"].(string)
+	userID := int(claims["user_id"].(float64))
 
-	expenses := manager.FilterExpensesByUser(username, category, min)
+	expenses := manager.FilterExpensesByUser(userID, category, min)
 
 	response := model.APIResponse{
 		Message: "success",
@@ -48,16 +48,13 @@ func createExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := r.Context().Value("user")
-	if user == nil {
+	userID := r.Context().Value("userID")
+	if userID == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	claims := user.(jwt.MapClaims)
-	username := claims["username"].(string)
-
-	expense.UserID = username
+	expense.UserID = userID.(int)
 
 	if expense.Title == "" {
 		http.Error(w, "Title is required", http.StatusBadRequest)
@@ -157,7 +154,7 @@ func profile(w http.ResponseWriter, r *http.Request) {
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.GenerateToken("trung")
+	token, err := auth.GenerateToken("trung", 1)
 
 	if err != nil {
 		http.Error(w, "cannot generate token", http.StatusInternalServerError)
@@ -175,13 +172,13 @@ func main() {
 
 	r.Use(LoggingMiddleware)
 
-	r.HandleFunc("/expenses", AuthMiddleware(createExpense)).Methods("POST")
+	r.Handle("/expenses", AuthMiddleware(http.HandlerFunc(createExpense))).Methods("POST")
 	r.HandleFunc("/expenses/{id}", updateExpense).Methods("PUT")
 	r.HandleFunc("/expenses/{id}", getExpenseByID).Methods("GET")
 	r.HandleFunc("/expenses/{id}", deleteExpense).Methods("DELETE")
-	r.HandleFunc("/expenses", AuthMiddleware(getExpenses)).Methods("GET")
+	r.Handle("/expenses", AuthMiddleware(http.HandlerFunc(getExpenses))).Methods("GET")
 	r.HandleFunc("/login", login).Methods("POST")
-	r.HandleFunc("/profile", AuthMiddleware(profile)).Methods("GET")
+	r.Handle("/profile", AuthMiddleware(http.HandlerFunc(profile))).Methods("GET")
 
 	http.ListenAndServe(":8080", r)
 

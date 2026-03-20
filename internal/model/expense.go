@@ -5,5 +5,5 @@ type Expense struct {
 	Title    string `json:"title"`
 	Amount   int    `json:"amount"`
 	Category string `json:"category"`
-	UserID   string `json:"user_id"`
+	UserID   int    `json:"user_id"`
 }
