@@ -6,10 +6,11 @@ type ExpenseService struct {
 	expenses []model.Expense
 }
 
-func (s *ExpenseService) AddExpense(e model.Expense) {
-	s.expenses = append(s.expenses, e)
+func (s *ExpenseService) AddExpense(expense model.Expense) model.Expense {
+	expense.ID = len(s.expenses) + 1
+	s.expenses = append(s.expenses, expense)
+	return expense
 }
-
 func (s *ExpenseService) GetAll() []model.Expense {
 	return s.expenses
 }

@@ -9,7 +9,6 @@ import (
 	"expense-manager/internal/model"
 	"expense-manager/internal/service"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 )
 
@@ -25,10 +24,15 @@ func getExpenses(w http.ResponseWriter, r *http.Request) {
 		min = value
 	}
 
-	claims := r.Context().Value("user").(jwt.MapClaims)
-	userID := int(claims["user_id"].(float64))
+	userID := r.Context().Value("userID")
+	if userID == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-	expenses := manager.FilterExpensesByUser(userID, category, min)
+	uid := userID.(int)
+
+	expenses := manager.FilterExpensesByUser(uid, category, min)
 
 	response := model.APIResponse{
 		Message: "success",
@@ -66,9 +70,11 @@ func createExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	manager.AddExpense(expense)
+	expense = manager.AddExpense(expense)
 
 	w.WriteHeader(http.StatusCreated)
+
+	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(model.APIResponse{
 		Message: "Expense created",
