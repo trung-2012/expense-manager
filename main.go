@@ -7,12 +7,13 @@ import (
 
 	"expense-manager/internal/auth"
 	"expense-manager/internal/model"
+	"expense-manager/internal/repository"
 	"expense-manager/internal/service"
 
 	"github.com/gorilla/mux"
 )
 
-var manager = service.ExpenseService{}
+var expenseService *service.ExpenseService
 
 func getExpenses(w http.ResponseWriter, r *http.Request) {
 	category := r.URL.Query().Get("category")
@@ -32,7 +33,7 @@ func getExpenses(w http.ResponseWriter, r *http.Request) {
 
 	uid := userID.(int)
 
-	expenses := manager.FilterExpensesByUser(uid, category, min)
+	expenses := expenseService.FilterExpensesByUser(uid, category, min)
 
 	response := model.APIResponse{
 		Message: "success",
@@ -70,11 +71,10 @@ func createExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expense = manager.AddExpense(expense)
-
-	w.WriteHeader(http.StatusCreated)
+	expense = expenseService.AddExpense(expense)
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 
 	json.NewEncoder(w).Encode(model.APIResponse{
 		Message: "Expense created",
@@ -83,7 +83,6 @@ func createExpense(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateExpense(w http.ResponseWriter, r *http.Request) {
-
 	params := mux.Vars(r)
 	idStr := params["id"]
 
@@ -107,7 +106,7 @@ func updateExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ok := manager.UpdateExpense(id, e)
+	ok := expenseService.UpdateExpense(id, e)
 
 	if !ok {
 		http.Error(w, "Expense not found", http.StatusNotFound)
@@ -118,20 +117,17 @@ func updateExpense(w http.ResponseWriter, r *http.Request) {
 }
 
 func getExpenseByID(w http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
 
-	expense, found := manager.GetByID(id)
+	expense, found := expenseService.GetByID(id)
 
 	if !found {
-
 		w.WriteHeader(http.StatusNotFound)
 
 		json.NewEncoder(w).Encode(model.APIResponse{
 			Message: "Expense not found",
 		})
-
 		return
 	}
 
@@ -145,7 +141,7 @@ func deleteExpense(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, _ := strconv.Atoi(params["id"])
 
-	ok := manager.DeleteExpense(id)
+	ok := expenseService.DeleteExpense(id)
 
 	if !ok {
 		http.Error(w, "Expense not found", http.StatusNotFound)
@@ -173,19 +169,20 @@ func login(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	repo := &repository.ExpenseRepository{}
+	expenseService = service.NewExpenseService(repo)
 
 	r := mux.NewRouter()
 
 	r.Use(LoggingMiddleware)
 
 	r.Handle("/expenses", AuthMiddleware(http.HandlerFunc(createExpense))).Methods("POST")
+	r.Handle("/expenses", AuthMiddleware(http.HandlerFunc(getExpenses))).Methods("GET")
 	r.HandleFunc("/expenses/{id}", updateExpense).Methods("PUT")
 	r.HandleFunc("/expenses/{id}", getExpenseByID).Methods("GET")
 	r.HandleFunc("/expenses/{id}", deleteExpense).Methods("DELETE")
-	r.Handle("/expenses", AuthMiddleware(http.HandlerFunc(getExpenses))).Methods("GET")
 	r.HandleFunc("/login", login).Methods("POST")
 	r.Handle("/profile", AuthMiddleware(http.HandlerFunc(profile))).Methods("GET")
 
 	http.ListenAndServe(":8080", r)
-
 }

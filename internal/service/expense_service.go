@@ -6,7 +6,13 @@ import (
 )
 
 type ExpenseService struct {
-	repo repository.ExpenseRepository
+	repo *repository.ExpenseRepository
+}
+
+func NewExpenseService(repo *repository.ExpenseRepository) *ExpenseService {
+	return &ExpenseService{
+		repo: repo,
+	}
 }
 
 func (s *ExpenseService) AddExpense(expense model.Expense) model.Expense {
