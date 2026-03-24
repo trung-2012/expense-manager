@@ -18,11 +18,26 @@ var expenseService *service.ExpenseService
 func getExpenses(w http.ResponseWriter, r *http.Request) {
 	category := r.URL.Query().Get("category")
 	minStr := r.URL.Query().Get("min")
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+	sortBy := r.URL.Query().Get("sort")
 
-	min := 0
+	min := 0.0
 	if minStr != "" {
-		value, _ := strconv.Atoi(minStr)
+		value, _ := strconv.ParseFloat(minStr, 64)
 		min = value
+	}
+
+	page := 1
+	if pageStr != "" {
+		value, _ := strconv.Atoi(pageStr)
+		page = value
+	}
+
+	limit := 5
+	if limitStr != "" {
+		value, _ := strconv.Atoi(limitStr)
+		limit = value
 	}
 
 	userID := r.Context().Value("userID")
@@ -31,9 +46,7 @@ func getExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uid := userID.(int)
-
-	expenses := expenseService.FilterExpensesByUser(uid, category, min)
+	expenses := expenseService.GetExpenses(category, min, page, limit, sortBy)
 
 	response := model.APIResponse{
 		Message: "success",

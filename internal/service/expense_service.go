@@ -3,6 +3,7 @@ package service
 import (
 	"expense-manager/internal/model"
 	"expense-manager/internal/repository"
+	"sort"
 )
 
 type ExpenseService struct {
@@ -19,8 +20,39 @@ func (s *ExpenseService) AddExpense(expense model.Expense) model.Expense {
 	return s.repo.Add(expense)
 }
 
-func (s *ExpenseService) GetAll() []model.Expense {
-	return s.repo.GetAll()
+func (s *ExpenseService) GetExpenses(category string, min float64, page int, limit int, sortBy string) []model.Expense {
+	expenses := s.repo.GetAll()
+
+	var filtered []model.Expense
+
+	for _, e := range expenses {
+		if category != "" && e.Category != category {
+			continue
+		}
+		if min > 0 && e.Amount < min {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+
+	if sortBy == "amount" {
+		sort.Slice(filtered, func(i, j int) bool {
+			return filtered[i].Amount < filtered[j].Amount
+		})
+	}
+
+	start := (page - 1) * limit
+	end := start + limit
+
+	if start > len(filtered) {
+		return []model.Expense{}
+	}
+
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+
+	return filtered[start:end]
 }
 
 func (s *ExpenseService) DeleteExpense(id int) bool {
