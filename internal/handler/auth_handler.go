@@ -19,7 +19,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"token":      token,
+		"expires_in": "1 minute",
+	})
+}
+
+func Logout(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
-		"token": token,
+		"message": "logout success",
 	})
 }

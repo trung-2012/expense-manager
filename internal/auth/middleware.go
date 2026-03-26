@@ -1,8 +1,7 @@
-package main
+package auth
 
 import (
 	"context"
-	"expense-manager/internal/auth"
 	"fmt"
 	"net/http"
 	"strings"
@@ -17,9 +16,7 @@ const UserIDKey contextKey = "userID"
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		fmt.Println(r.Method, r.URL.Path, time.Now().Format("15:04:05"))
-
 		next.ServeHTTP(w, r)
 	})
 }
@@ -35,22 +32,21 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
-		fmt.Println(tokenString)
 
-		claims := &jwt.MapClaims{}
+		claims := jwt.MapClaims{}
 
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return auth.JwtKey, nil
+			return JwtKey, nil
 		})
 
 		if err != nil || !token.Valid {
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 			return
 		}
 
-		userID := int((*claims)["user_id"].(float64))
+		userID := int(claims["user_id"].(float64))
 
-		ctx := context.WithValue(r.Context(), "userID", userID)
+		ctx := context.WithValue(r.Context(), UserIDKey, userID)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
