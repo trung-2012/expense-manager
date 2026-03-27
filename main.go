@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"expense-manager/internal/auth"
+	"expense-manager/internal/database"
 	"expense-manager/internal/handler"
 	"expense-manager/internal/repository"
 	"expense-manager/internal/service"
@@ -12,6 +13,8 @@ import (
 )
 
 func main() {
+	database.Connect()
+
 	repo := &repository.ExpenseRepository{}
 	svc := service.NewExpenseService(repo)
 

@@ -1,87 +1,190 @@
 package repository
 
-import "expense-manager/internal/model"
+import (
+	"expense-manager/internal/database"
+	"expense-manager/internal/model"
+)
 
-type ExpenseRepository struct {
-	expenses []model.Expense
-}
+type ExpenseRepository struct{}
 
 func (r *ExpenseRepository) Add(expense model.Expense) model.Expense {
-	expense.ID = len(r.expenses) + 1
-	r.expenses = append(r.expenses, expense)
+	result, err := database.DB.Exec(
+		"INSERT INTO expenses(title, amount, category, user_id) VALUES (?, ?, ?, ?)",
+		expense.Title,
+		expense.Amount,
+		expense.Category,
+		expense.UserID,
+	)
+
+	if err != nil {
+		return expense
+	}
+
+	id, _ := result.LastInsertId()
+	expense.ID = int(id)
+
 	return expense
 }
 
 func (r *ExpenseRepository) GetAll() []model.Expense {
-	return r.expenses
+	rows, err := database.DB.Query(
+		"SELECT id, title, amount, category, user_id FROM expenses",
+	)
+
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	var expenses []model.Expense
+
+	for rows.Next() {
+		var expense model.Expense
+
+		rows.Scan(
+			&expense.ID,
+			&expense.Title,
+			&expense.Amount,
+			&expense.Category,
+			&expense.UserID,
+		)
+
+		expenses = append(expenses, expense)
+	}
+
+	return expenses
 }
 
 func (r *ExpenseRepository) GetByUserID(userID int) []model.Expense {
-	var result []model.Expense
-	for _, e := range r.expenses {
-		if e.UserID == userID {
-			result = append(result, e)
-		}
+	rows, err := database.DB.Query(
+		"SELECT id, title, amount, category, user_id FROM expenses WHERE user_id=?",
+		userID,
+	)
+
+	if err != nil {
+		return nil
 	}
-	return result
+	defer rows.Close()
+
+	var expenses []model.Expense
+
+	for rows.Next() {
+		var expense model.Expense
+
+		rows.Scan(
+			&expense.ID,
+			&expense.Title,
+			&expense.Amount,
+			&expense.Category,
+			&expense.UserID,
+		)
+
+		expenses = append(expenses, expense)
+	}
+
+	return expenses
 }
 
 func (r *ExpenseRepository) Delete(id int) bool {
-	var newExpenses []model.Expense
-	found := false
+	result, err := database.DB.Exec(
+		"DELETE FROM expenses WHERE id=?",
+		id,
+	)
 
-	for _, e := range r.expenses {
-		if e.ID != id {
-			newExpenses = append(newExpenses, e)
-		} else {
-			found = true
-		}
+	if err != nil {
+		return false
 	}
 
-	r.expenses = newExpenses
-	return found
+	rows, _ := result.RowsAffected()
+	return rows > 0
 }
 
 func (r *ExpenseRepository) Total() float64 {
+	row := database.DB.QueryRow(
+		"SELECT SUM(amount) FROM expenses",
+	)
+
 	var total float64
-	for _, e := range r.expenses {
-		total += float64(e.Amount)
-	}
+	row.Scan(&total)
+
 	return total
 }
 
 func (r *ExpenseRepository) Update(id int, updated model.Expense) bool {
-	for i, e := range r.expenses {
-		if e.ID == id {
-			r.expenses[i].Title = updated.Title
-			r.expenses[i].Amount = updated.Amount
-			r.expenses[i].Category = updated.Category
-			return true
-		}
+	result, err := database.DB.Exec(
+		"UPDATE expenses SET title=?, amount=?, category=? WHERE id=?",
+		updated.Title,
+		updated.Amount,
+		updated.Category,
+		id,
+	)
+
+	if err != nil {
+		return false
 	}
-	return false
+
+	rows, _ := result.RowsAffected()
+	return rows > 0
 }
 
 func (r *ExpenseRepository) GetByID(id int) (model.Expense, bool) {
-	for _, e := range r.expenses {
-		if e.ID == id {
-			return e, true
-		}
+	row := database.DB.QueryRow(
+		"SELECT id, title, amount, category, user_id FROM expenses WHERE id=?",
+		id,
+	)
+
+	var expense model.Expense
+
+	err := row.Scan(
+		&expense.ID,
+		&expense.Title,
+		&expense.Amount,
+		&expense.Category,
+		&expense.UserID,
+	)
+
+	if err != nil {
+		return model.Expense{}, false
 	}
-	return model.Expense{}, false
+
+	return expense, true
 }
 
 func (r *ExpenseRepository) FilterByUser(userID int, category string, min int) []model.Expense {
-	var result []model.Expense
+	query := "SELECT id, title, amount, category, user_id FROM expenses WHERE user_id=?"
+	args := []interface{}{userID}
 
-	for _, expense := range r.expenses {
-		if expense.UserID == userID {
-			if (category == "" || expense.Category == category) &&
-				(min == 0 || int(expense.Amount) >= min) {
-				result = append(result, expense)
-			}
-		}
+	if category != "" {
+		query += " AND category=?"
+		args = append(args, category)
 	}
 
-	return result
+	if min > 0 {
+		query += " AND amount>=?"
+		args = append(args, min)
+	}
+
+	rows, err := database.DB.Query(query, args...)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	var expenses []model.Expense
+
+	for rows.Next() {
+		var expense model.Expense
+
+		rows.Scan(
+			&expense.ID,
+			&expense.Title,
+			&expense.Amount,
+			&expense.Category,
+			&expense.UserID,
+		)
+
+		expenses = append(expenses, expense)
+	}
+
+	return expenses
 }

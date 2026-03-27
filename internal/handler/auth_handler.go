@@ -21,7 +21,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"token":      token,
-		"expires_in": "1 minute",
+		"expires_in": "10 minute",
 	})
 }
 

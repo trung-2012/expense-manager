@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"expense-manager/internal/auth"
 	"expense-manager/internal/model"
 	"expense-manager/internal/service"
 	"net/http"
@@ -45,13 +46,13 @@ func GetExpenses(w http.ResponseWriter, r *http.Request) {
 		limit = value
 	}
 
-	userID := r.Context().Value("userID")
+	userID := r.Context().Value(auth.UserIDKey)
 	if userID == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	expenses := ExpenseService.GetExpenses(category, min, page, limit, sortBy)
+	expenses := ExpenseService.GetExpenses(userID.(int), category, min, page, limit, sortBy)
 
 	response := model.APIResponse{
 		Message: "success",
@@ -71,7 +72,7 @@ func CreateExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value("userID")
+	userID := r.Context().Value(auth.UserIDKey)
 	if userID == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return

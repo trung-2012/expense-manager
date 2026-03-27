@@ -24,14 +24,21 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		tokenString := r.Header.Get("Authorization")
+		authHeader := r.Header.Get("Authorization")
 
-		if tokenString == "" {
+		if authHeader == "" {
 			http.Error(w, "Missing token", http.StatusUnauthorized)
 			return
 		}
 
-		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+		parts := strings.Split(authHeader, " ")
+
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			http.Error(w, "Invalid token format", http.StatusUnauthorized)
+			return
+		}
+
+		tokenString := parts[1]
 
 		claims := jwt.MapClaims{}
 
@@ -49,5 +56,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), UserIDKey, userID)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
+
+		fmt.Println("HEADER:", authHeader)
+		fmt.Println("TOKEN:", tokenString)
 	})
 }

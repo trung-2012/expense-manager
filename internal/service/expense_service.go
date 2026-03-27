@@ -20,8 +20,8 @@ func (s *ExpenseService) AddExpense(expense model.Expense) model.Expense {
 	return s.repo.Add(expense)
 }
 
-func (s *ExpenseService) GetExpenses(category string, min float64, page int, limit int, sortBy string) []model.Expense {
-	expenses := s.repo.GetAll()
+func (s *ExpenseService) GetExpenses(userID int, category string, min float64, page int, limit int, sortBy string) []model.Expense {
+	expenses := s.repo.FilterByUser(userID, category, int(min))
 
 	var filtered []model.Expense
 
