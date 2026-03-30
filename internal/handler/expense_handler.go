@@ -48,7 +48,7 @@ func GetExpenses(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value(auth.UserIDKey)
 	if userID == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
@@ -59,8 +59,7 @@ func GetExpenses(w http.ResponseWriter, r *http.Request) {
 		Data:    expenses,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	WriteJSON(w, http.StatusOK, response)
 }
 
 func CreateExpense(w http.ResponseWriter, r *http.Request) {
@@ -68,34 +67,26 @@ func CreateExpense(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&expense)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
 
 	userID := r.Context().Value(auth.UserIDKey)
 	if userID == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
 	expense.UserID = userID.(int)
 
-	if expense.Title == "" {
-		http.Error(w, "Title is required", http.StatusBadRequest)
-		return
-	}
-
-	if expense.Amount <= 0 {
-		http.Error(w, "Amount must be greater than 0", http.StatusBadRequest)
+	if err := ValidateExpense(expense); err != nil {
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	expense = ExpenseService.AddExpense(expense)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	json.NewEncoder(w).Encode(model.APIResponse{
+	WriteJSON(w, http.StatusCreated, model.APIResponse{
 		Message: "Expense created",
 		Data:    expense,
 	})
@@ -111,28 +102,23 @@ func UpdateExpense(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&e)
 
 	if err != nil {
-		http.Error(w, "Invalid data", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "Invalid data")
 		return
 	}
 
-	if e.Title == "" {
-		http.Error(w, "Title is required", http.StatusBadRequest)
-		return
-	}
-
-	if e.Amount <= 0 {
-		http.Error(w, "Amount must be greater than 0", http.StatusBadRequest)
+	if err := ValidateExpense(e); err != nil {
+		WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	ok := ExpenseService.UpdateExpense(id, e)
 
 	if !ok {
-		http.Error(w, "Expense not found", http.StatusNotFound)
+		WriteError(w, http.StatusNotFound, "Expense not found")
 		return
 	}
 
-	json.NewEncoder(w).Encode("Expense updated")
+	WriteJSON(w, http.StatusOK, "Expense updated")
 }
 
 func GetExpenseByID(w http.ResponseWriter, r *http.Request) {
@@ -142,15 +128,13 @@ func GetExpenseByID(w http.ResponseWriter, r *http.Request) {
 	expense, found := ExpenseService.GetByID(id)
 
 	if !found {
-		w.WriteHeader(http.StatusNotFound)
-
-		json.NewEncoder(w).Encode(model.APIResponse{
+		WriteJSON(w, http.StatusNotFound, model.APIResponse{
 			Message: "Expense not found",
 		})
 		return
 	}
 
-	json.NewEncoder(w).Encode(model.APIResponse{
+	WriteJSON(w, http.StatusOK, model.APIResponse{
 		Message: "success",
 		Data:    expense,
 	})
@@ -163,7 +147,7 @@ func DeleteExpense(w http.ResponseWriter, r *http.Request) {
 	ok := ExpenseService.DeleteExpense(id)
 
 	if !ok {
-		http.Error(w, "Expense not found", http.StatusNotFound)
+		WriteError(w, http.StatusNotFound, "Expense not found")
 		return
 	}
 
