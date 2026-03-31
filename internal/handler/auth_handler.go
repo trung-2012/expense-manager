@@ -1,32 +1,33 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"expense-manager/internal/auth"
 )
 
 func Profile(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Protected profile success"))
+	WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "Protected profile success",
+	})
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GenerateToken("trung", 1)
 
 	if err != nil {
-		http.Error(w, "cannot generate token", http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, "cannot generate token")
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"token":      token,
 		"expires_in": "10 minute",
 	})
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(map[string]string{
+	WriteJSON(w, http.StatusOK, map[string]string{
 		"message": "logout success",
 	})
 }
