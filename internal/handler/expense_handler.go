@@ -118,7 +118,9 @@ func UpdateExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, "Expense updated")
+	WriteJSON(w, http.StatusOK, model.APIResponse{
+		Message: "Expense updated",
+	})
 }
 
 func GetExpenseByID(w http.ResponseWriter, r *http.Request) {
@@ -151,5 +153,7 @@ func DeleteExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	WriteJSON(w, http.StatusOK, model.APIResponse{
+		Message: "Expense deleted",
+	})
 }

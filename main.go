@@ -6,6 +6,7 @@ import (
 	"expense-manager/internal/auth"
 	"expense-manager/internal/database"
 	"expense-manager/internal/handler"
+	"expense-manager/internal/middleware"
 	"expense-manager/internal/repository"
 	"expense-manager/internal/service"
 
@@ -23,6 +24,7 @@ func main() {
 	r := mux.NewRouter()
 
 	r.Use(auth.LoggingMiddleware)
+	r.Use(middleware.RecoverMiddleware)
 
 	r.Handle("/expenses", auth.AuthMiddleware(http.HandlerFunc(handler.CreateExpense))).Methods("POST")
 	r.Handle("/expenses", auth.AuthMiddleware(http.HandlerFunc(handler.GetExpenses))).Methods("GET")

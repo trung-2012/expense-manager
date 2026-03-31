@@ -29,7 +29,7 @@ func (s *ExpenseService) GetExpenses(userID int, category string, min float64, p
 		if category != "" && e.Category != category {
 			continue
 		}
-		if min > 0 && e.Amount < min {
+		if min > 0 && float64(e.Amount) < min {
 			continue
 		}
 		filtered = append(filtered, e)
@@ -44,7 +44,7 @@ func (s *ExpenseService) GetExpenses(userID int, category string, min float64, p
 	start := (page - 1) * limit
 	end := start + limit
 
-	if start > len(filtered) {
+	if start >= len(filtered) {
 		return []model.Expense{}
 	}
 
